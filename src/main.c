@@ -15,16 +15,13 @@
 #include "buttonsbsp.h"
 #include "ledsbsp.h"
 #include "uart1bsp.h"
+#include "gpiobsp.h"
+#include "dacbsp.h"
 
-#include "stm32f4xx_hal.h"
 
-#define ENABLE_CONVERSORCC  ledsbsp_outputLed(PIN_PC11, HIGH);
-#define DISABLE_CONVERSORCC ledsbsp_outputLed(PIN_PC11, LOW);
+#define ENABLE_CONVERSORCC  gpiobsp_output(GPIOC_11, HIGH);
+#define DISABLE_CONVERSORCC gpiobsp_output(GPIOC_11, LOW);
 
-DAC_HandleTypeDef hdac;
-
-static void MX_GPIO_Init(void);
-static void MX_DAC_Init(void);
 
 void vApplicationTickHook( void )
 {
@@ -46,8 +43,6 @@ static void mainTask(void* pvParameters)
 		ledsbsp_toogleOutputLed(LED_GREEN);
 		vTaskDelay(100);
 	}
-
-
 
 	ENABLE_CONVERSORCC;
 	ledsbsp_outputLed(LED_GREEN, HIGH);
@@ -74,7 +69,7 @@ static void mainTask(void* pvParameters)
 				vel = 0;
 			}
 
-			HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, vel);
+			dacbsp_setValue(vel);
 
 			while(buttonsbsp_getSW1State());
 		}
@@ -85,19 +80,13 @@ static void mainTask(void* pvParameters)
 int main(void)
 {
 	ledsbsp_init();
+	gpiobsp_init();
 	uart1bsp_init();
 	encodersbsp_init();
 	buttonsbsp_init();
+	dacbsp_init();
 
 	DISABLE_CONVERSORCC;
-
-	MX_GPIO_Init();
-	MX_DAC_Init();
-	HAL_DAC_MspInit(&hdac);
-
-	HAL_DAC_Start(&hdac, DAC_CHANNEL_1);
-	HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 0);
-
 
 	xTaskCreate(mainTask, "mt", (configMINIMAL_STACK_SIZE*3), NULL, tskIDLE_PRIORITY, NULL);
 
@@ -110,90 +99,6 @@ int main(void)
 }
 
 
-/* DAC init function */
-void MX_DAC_Init(void)
-{
-
-  DAC_ChannelConfTypeDef sConfig;
-
-    /**DAC Initialization
-    */
-  hdac.Instance = DAC;
-  HAL_DAC_Init(&hdac);
-
-    /**DAC channel OUT1 config
-    */
-  sConfig.DAC_Trigger = DAC_TRIGGER_NONE;
-  sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
-  HAL_DAC_ConfigChannel(&hdac, &sConfig, DAC_CHANNEL_1);
-
-}
-
-/** Configure pins as
-        * Analog
-        * Input
-        * Output
-        * EVENT_OUT
-        * EXTI
-*/
-void MX_GPIO_Init(void)
-{
-
-  /* GPIO Ports Clock Enable */
-  __GPIOH_CLK_ENABLE();
-  __GPIOA_CLK_ENABLE();
-
-}
-
-void HAL_DAC_MspInit(DAC_HandleTypeDef* hdac)
-{
-
-  GPIO_InitTypeDef GPIO_InitStruct;
-  if(hdac->Instance==DAC)
-  {
-  /* USER CODE BEGIN DAC_MspInit 0 */
-
-  /* USER CODE END DAC_MspInit 0 */
-    /* Peripheral clock enable */
-    __DAC_CLK_ENABLE();
-
-    /**DAC GPIO Configuration
-    PA4     ------> DAC_OUT1
-    */
-    GPIO_InitStruct.Pin = GPIO_PIN_4;
-    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /* USER CODE BEGIN DAC_MspInit 1 */
-
-  /* USER CODE END DAC_MspInit 1 */
-  }
-
-}
-
-void HAL_DAC_MspDeInit(DAC_HandleTypeDef* hdac)
-{
-
-  if(hdac->Instance==DAC)
-  {
-  /* USER CODE BEGIN DAC_MspDeInit 0 */
-
-  /* USER CODE END DAC_MspDeInit 0 */
-    /* Peripheral clock disable */
-    __DAC_CLK_DISABLE();
-
-    /**DAC GPIO Configuration
-    PA4     ------> DAC_OUT1
-    */
-    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_4);
-
-  }
-  /* USER CODE BEGIN DAC_MspDeInit 1 */
-
-  /* USER CODE END DAC_MspDeInit 1 */
-
-}
 
 
 #pragma GCC diagnostic pop
