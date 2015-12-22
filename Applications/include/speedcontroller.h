@@ -27,6 +27,8 @@ extern "C"
 
 /*************************************** INCLUDES *************************************/
 
+#include <stdbool.h>
+
 #include "FreeRTOS.h"
 #include "task.h"
 

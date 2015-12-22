@@ -49,9 +49,9 @@ volatile int32_t count = 0;
 
 volatile float targetSpeed = 0;
 
-volatile float kp = 100;
+volatile float kp = 10;
 volatile float ki = 1.8;
-volatile float kd = 0.1;
+volatile float kd = 0.0;
 
 volatile float erro = 0, erro_a=0;
 volatile float out = 0;
@@ -73,7 +73,7 @@ static void speedController_Task(void* pvParameters)
 
 	for(;;)
 	{
-		encoder = encoderbsp_getLEncoder();
+		encoder = -encoderbsp_getLEncoder();
 		encoderChange = (encoder - encoderOld);
 
 		encoderOld = encoder;
@@ -93,10 +93,11 @@ static void speedController_Task(void* pvParameters)
 		encoderChangeFiltred = m_out[1];
 
 
-
 		erro = encoderChangeFiltred - targetSpeed;
 
-		out = kp*erro + ki*(erro + erro_a) + kd*(erro - erro_a);
+//		posPWM[i] = arm_pid_f32(&SpeedPID[i], posErr[i]);
+//		out = kp*erro + ki*(erro + erro_a) + kd*(erro - erro_a);
+		out = arm_pid_f32(&SpeedPID, erro);
 
 		erro_a = erro;
 
@@ -125,6 +126,14 @@ static void speedController_Task(void* pvParameters)
 void speedController_Init()
 {
 	encodersbsp_init();
+	dacbsp_init();
+
+	SpeedPID.Ki = 0.85;
+	SpeedPID.Kp = 80.0;
+	SpeedPID.Kd = 0.0;
+
+	arm_pid_init_f32(&SpeedPID, true);
+
 	dacbsp_setValue(0);
 	DISABLE_CONVERSORCC;
 	xTaskCreate(speedController_Task,

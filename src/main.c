@@ -20,6 +20,8 @@
 
 #include "speedcontroller.h"
 
+#include "arm_math.h"
+
 extern volatile float targetSpeed;
 
 extern volatile float kp;
@@ -30,6 +32,8 @@ extern volatile int32_t encoderChange;
 extern volatile float erro;
 //extern volatile float erro_a=0;
 extern volatile float out;
+
+extern arm_pid_instance_f32 SpeedPID;
 
 void vApplicationTickHook( void )
 {
@@ -75,8 +79,8 @@ static void commandsTask(void* pvParameters)
 				}
 				if(pch[1] == 't')
 				{
-					printf("kp = %f\n", kp);
-					printf("ki = %f\n", ki);
+					printf("kp = %f\n", SpeedPID.Kp);
+					printf("ki = %f\n", SpeedPID.Ki);
 					printf("Vel = %f RPM \n", COUNTS_PER_MS_TO_RPM(encoderChangeFiltred));
 					printf("Vel = %d Counts \n", encoderChange);
 					printf("Vel = %f Counts Filt. \n", encoderChangeFiltred);
@@ -92,17 +96,17 @@ static void commandsTask(void* pvParameters)
 				{
 					pch = strtok (NULL," ");
 
-					kp = atof(pch);
+					SpeedPID.Kp = atof(pch);
 
-					printf("kp = %f\n", kp);
+					printf("kp = %f\n", SpeedPID.Kp);
 				}
 				else if(pch[1] == 'i')
 				{
 					pch = strtok (NULL," ");
 
-					ki = atof(pch);
+					SpeedPID.Ki = atof(pch);
 
-					printf("ki = %f\n", ki);
+					printf("ki = %f\n", SpeedPID.Ki);
 				}
 			}
 
