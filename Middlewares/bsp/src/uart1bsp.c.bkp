@@ -22,35 +22,7 @@
 
 #include "uart1bsp.h"
 
-#include "ledsbsp.h"
-
-#include "buffer.h"
-
-//#include "arm_math.h"
-
-
-#include <unistd.h>
-#include <string.h>
-
 /******************************* DEFINITIONS AND MACROS *******************************/
-
-#define SPEED_CONTROL_MODULE_ID					100
-#define MAIN_CONTROL_MODULE_ID					101
-#define POSITION_CONTROL_MODULE_ID				102
-#define TRANSFERT_FUNCTION_MODULE_ID			105
-#define WALL_SENSORS_MODULE_ID					106
-#define SETTING_MODULE_ID						110
-#define RING_BUFFER_MODULE_ID					111
-#define CMDLINE_PARSER_MODULE_ID				112
-
-
-
-#ifndef TRUE
-#define TRUE	1
-#endif
-#ifndef FALSE
-#define FALSE	0
-#endif
 
 #define USARTx_IRQn			USART1_IRQn
 #define USARTx_IRQHandler	USART1_IRQHandler
@@ -58,27 +30,16 @@
 #define USARTx_TX_DMA_CHANNEL            DMA_CHANNEL_4
 #define USARTx_TX_DMA_STREAM             DMA2_Stream7
 
-#define RX_CIRC_BUFF_SIZE	512
-
-char serial_commad[1000];
-char RxByte;
-
 /************************* TYPEDEFS, CLASSES AND STRUCTURES ***************************/
 
 /************************************** PROTOTYPES ************************************/
 
 /********************************** GLOBAL VARIABLES **********************************/
 
-
 /********************************** LOCAL  VARIABLES **********************************/
 
 UART_HandleTypeDef huart1;
 DMA_HandleTypeDef hdma_tx;
-
-static uint8_t u8_rxarrayU1[RX_CIRC_BUFF_SIZE];
-
-static TBuffer T_rxcircBuffU1;
-
 
 /******************************* FUNCTION  IMPLEMENTATION *****************************/
 
@@ -88,8 +49,6 @@ void uart1bsp_init(void)
 	__GPIOB_CLK_ENABLE();	// Habilita o barramento de clock do GPIOA
 	__USART1_CLK_ENABLE();	// Habilita o barramento de clock da USART1
 	__DMA2_CLK_ENABLE();
-
-	initBuffer(&T_rxcircBuffU1, u8_rxarrayU1, RX_CIRC_BUFF_SIZE);
 
 	// Configura os GPIOs da USART1 como Alternate Function
 	GPIO_InitTypeDef GPIO_InitStruct;
@@ -140,72 +99,13 @@ void uart1bsp_init(void)
 	/* NVIC configuration for DMA transfer complete interrupt (USARTx_TX) */
 	HAL_NVIC_SetPriority(DMA2_Stream7_IRQn, 1, 1);
 	HAL_NVIC_EnableIRQ(DMA2_Stream7_IRQn);
-
-	HAL_UART_Receive_IT(&huart1, (uint8_t*)&RxByte, 1);
 }
-
-
-/**
- * @brief  Rx Transfer completed callback
- * @param  UartHandle: UART handle
- * @note   This example shows a simple way to report end of IT Rx transfer, and
- *         you can add your own implemenserial_buffertation.
- * @retval None
- */
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
-{
-	//    static uint32_t pos = 0;
-
-	HAL_UART_Receive_IT(UartHandle, (uint8_t*)&RxByte, 1);
-
-	bufferPutByte(&T_rxcircBuffU1, RxByte);
-
-//	ledsbsp_toogle(LED_ORANGE);
-
-}
-
-
 
 void DMA2_Stream7_IRQHandler(void)
 {
 	HAL_DMA_IRQHandler(huart1.hdmatx);
 }
 
-/**
- * This function checks if the circular buffer for data receive is empty and put the data
- * in a refer buff.
- * @param[in] buff pointer to the array where the data will be stored
- * @param[in] u16_size size of buff used to store data
- * @return the number of data placed in the circular buffer.
- */
-uint32_t uart1bsp_GetNBytes(uint8_t *buff, uint32_t u32_size) {
-	uint32_t u32_datareceived = 0;
-
-	uint32_t u32_bufflength = bufferGetLength(&T_rxcircBuffU1);
-
-	if ((u32_size <= T_rxcircBuffU1.array_size) && (u32_bufflength != 0)) {
-		if (u32_size <= u32_bufflength) {
-			bufferGetN(&T_rxcircBuffU1, buff, u32_size);
-			u32_datareceived = u32_size;
-		} else {
-			bufferGetN(&T_rxcircBuffU1, buff, u32_bufflength);
-			u32_datareceived = u32_bufflength;
-		}
-	}
-
-	return u32_datareceived;
-}
-
-uint32_t uart1bsp_peak(void)
-{
-	return bufferGetLength(&T_rxcircBuffU1);
-}
-
-void usart1bsp_clearBuffer(void)
-{
-	char c;
-	while(bufferGetByte(&T_rxcircBuffU1, (uint8_t *)&c) > 0);
-}
 
 uint8_t uart1bsp_getByte(void)
 {
@@ -248,37 +148,3 @@ int _read (int file, char *ptr, int len)
 
 /*************************************** EOF ******************************************/
 
-void commandParser(void)
-{
-
-	uint32_t length = bufferGetLength(&T_rxcircBuffU1);
-	if(length > 0)
-	{
-		int i = 0;
-		float value;
-
-		bufferGetN(&T_rxcircBuffU1, (uint8_t*)serial_commad, length);
-
-		serial_commad[length+1] = '\0';
-
-		char* pch = strtok (serial_commad," ");
-
-		if(pch[0] == 'p')
-		{
-			if(pch[1] == '1')
-			{
-
-
-			}
-			if(pch[1] == '2')
-			{
-
-			}
-			if(pch[1] == '3')
-			{
-
-			}
-		}
-	}
-
-}

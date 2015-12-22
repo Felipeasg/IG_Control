@@ -53,7 +53,7 @@ void ledsbsp_init(void)
 
 }
 
-void ledsbsp_outputLed(EN_Leds en_led, GPIO_PinState en_pinstate)
+void ledsbsp_output(EN_Leds en_led, GPIO_PinState en_pinstate)
 {
 	switch(en_led)
 	{
@@ -80,23 +80,23 @@ void ledsbsp_outputLed(EN_Leds en_led, GPIO_PinState en_pinstate)
 
 void ledsbsp_setAllLeds(void)
 {
-	ledsbsp_outputLed(LED_GREEN, HIGH);
-	ledsbsp_outputLed(LED_ORANGE, HIGH);
-	ledsbsp_outputLed(LED_RED, HIGH);
-	ledsbsp_outputLed(LED_BLUE, HIGH);
+	ledsbsp_output(LED_GREEN, HIGH);
+	ledsbsp_output(LED_ORANGE, HIGH);
+	ledsbsp_output(LED_RED, HIGH);
+	ledsbsp_output(LED_BLUE, HIGH);
 //	ledsbsp_outputLed(LED5, HIGH);
 }
 
 void ledsbsp_resetAllLeds(void)
 {
-	ledsbsp_outputLed(LED_GREEN, LOW);
-	ledsbsp_outputLed(LED_ORANGE, LOW);
-	ledsbsp_outputLed(LED_RED, LOW);
-	ledsbsp_outputLed(LED_BLUE, LOW);
+	ledsbsp_output(LED_GREEN, LOW);
+	ledsbsp_output(LED_ORANGE, LOW);
+	ledsbsp_output(LED_RED, LOW);
+	ledsbsp_output(LED_BLUE, LOW);
 //	ledsbsp_outputLed(LED5, LOW);
 }
 
-void ledsbsp_toogleOutputLed(EN_Leds en_led)
+void ledsbsp_toogle(EN_Leds en_led)
 {
 	switch(en_led)
 		{

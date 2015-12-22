@@ -76,7 +76,7 @@ void ledsbsp_init(void);
  * @param[in] u8_state the state of a led (HIGH or LOW)
  * @return void
  */
-void ledsbsp_outputLed(EN_Leds en_led, GPIO_PinState en_pinstate);
+void ledsbsp_output(EN_Leds en_led, GPIO_PinState en_pinstate);
 
 /**
  * @brief Turn HIGH all the leds of the board
@@ -96,7 +96,7 @@ void ledsbsp_resetAllLeds(void);
  * @param[in] en_led
  * @return void
  */
-void ledsbsp_toogleOutputLed(EN_Leds en_led);
+void ledsbsp_toogle(EN_Leds en_led);
 
 #ifdef __cplusplus
 }

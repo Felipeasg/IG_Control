@@ -7,73 +7,111 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include "FreeRTOS.h"
 #include "task.h"
 
-#include "encodersbsp.h"
 #include "buttonsbsp.h"
 #include "ledsbsp.h"
 #include "uart1bsp.h"
 #include "gpiobsp.h"
-#include "dacbsp.h"
 
+#include "speedcontroller.h"
 
-#define ENABLE_CONVERSORCC  gpiobsp_output(GPIOC_11, HIGH);
-#define DISABLE_CONVERSORCC gpiobsp_output(GPIOC_11, LOW);
+extern volatile float targetSpeed;
 
+extern volatile float kp;
+extern volatile float ki;
+extern volatile float encoderChangeFiltred;
+extern volatile int32_t encoderChange;
+
+extern volatile float erro;
+//extern volatile float erro_a=0;
+extern volatile float out;
 
 void vApplicationTickHook( void )
 {
 	HAL_IncTick();
 }
 
-static void mainTask(void* pvParameters)
+static void commandsTask(void* pvParameters)
 {
 	(void)pvParameters;
 
-	//ledsbsp_init();
-
-	int32_t encoder1 = 0, encoder1a = 0;
-	int32_t encoder2 = 0, encoder2a = 0;
-	uint16_t vel = 0;
-
-	while(!buttonsbsp_getSW1State())
-	{
-		ledsbsp_toogleOutputLed(LED_GREEN);
-		vTaskDelay(100);
-	}
-
-	ENABLE_CONVERSORCC;
-	ledsbsp_outputLed(LED_GREEN, HIGH);
+	char command[200] = {0};
+	uint16_t receivedBytes = 0;
 
 	for(;;)
 	{
-		ledsbsp_toogleOutputLed(LED_BLUE);
-
-		encoder1 = encoderbsp_getLEncoder();
-		encoder2 = encoderbsp_getREncoder();
-
-		printf("E1 = %ld \r\n", (encoder1 - encoder1a));
-		printf("E2 = %ld \r\n", (encoder2 - encoder2a));
-
-		encoder1a = encoder1;
-		encoder2a = encoder2;
-
-		if(buttonsbsp_getSW1State())
+		receivedBytes = uart1bsp_peak();
+		if(receivedBytes >= 2)
 		{
-			vel += 100;
+			uart1bsp_GetNBytes((uint8_t*)command,receivedBytes);
+			command[receivedBytes+1] = '\0';
 
-			if(vel >= 4096)
+			char* pch = strtok (command," ");
+
+			if(pch[0] == 's')
 			{
-				vel = 0;
+				if(pch[1] == 'p')
+				{
+					pch = strtok (NULL," ");
+
+					targetSpeed = RPM_TO_COUNTS_PER_MS(atof(pch));
+
+					printf("targetSpeed = %f\n", COUNTS_PER_MS_TO_RPM(targetSpeed));
+				}
+				if(pch[1] == 'i')
+				{
+					ENABLE_CONVERSORCC;
+					printf("System init\n");
+				}
+				if(pch[1] == 's')
+				{
+					DISABLE_CONVERSORCC;
+					printf("System stop\n");
+				}
+				if(pch[1] == 't')
+				{
+					printf("kp = %f\n", kp);
+					printf("ki = %f\n", ki);
+					printf("Vel = %f RPM \n", COUNTS_PER_MS_TO_RPM(encoderChangeFiltred));
+					printf("Vel = %d Counts \n", encoderChange);
+					printf("Vel = %f Counts Filt. \n", encoderChangeFiltred);
+					printf("Erro = %f Counts \n", erro);
+					printf("Out = %f ADC Counts \n", out);
+					printf("Setpoint = %f RPM\r\n", COUNTS_PER_MS_TO_RPM(targetSpeed));
+					printf("---------------------------\n");
+				}
+			}
+			else if(pch[0] == 'k')
+			{
+				if(pch[1] == 'p')
+				{
+					pch = strtok (NULL," ");
+
+					kp = atof(pch);
+
+					printf("kp = %f\n", kp);
+				}
+				else if(pch[1] == 'i')
+				{
+					pch = strtok (NULL," ");
+
+					ki = atof(pch);
+
+					printf("ki = %f\n", ki);
+				}
 			}
 
-			dacbsp_setValue(vel);
+			usart1bsp_clearBuffer();
 
-			while(buttonsbsp_getSW1State());
 		}
-		vTaskDelay(50);
+
+		ledsbsp_toogle(LED_RED);
+		vTaskDelay(150);
 	}
 }
 
@@ -82,13 +120,17 @@ int main(void)
 	ledsbsp_init();
 	gpiobsp_init();
 	uart1bsp_init();
-	encodersbsp_init();
 	buttonsbsp_init();
-	dacbsp_init();
+	ledsbsp_resetAllLeds();
 
-	DISABLE_CONVERSORCC;
+	speedController_Init();
 
-	xTaskCreate(mainTask, "mt", (configMINIMAL_STACK_SIZE*3), NULL, tskIDLE_PRIORITY, NULL);
+	xTaskCreate(commandsTask,
+			"ct",
+			(configMINIMAL_STACK_SIZE*3),
+			NULL,
+			tskIDLE_PRIORITY,
+			NULL);
 
 	vTaskStartScheduler();
 
