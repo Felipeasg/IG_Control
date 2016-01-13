@@ -21,19 +21,20 @@
 #include "speedcontroller.h"
 
 #include "arm_math.h"
+#include "PID.h"
 
 extern volatile float targetSpeed;
 
-extern volatile float kp;
-extern volatile float ki;
 extern volatile float encoderChangeFiltred;
 extern volatile int32_t encoderChange;
 
-extern volatile float erro;
+extern volatile float pidError;
 //extern volatile float erro_a=0;
-extern volatile float out;
+extern volatile float pidOutput;
 
 extern arm_pid_instance_f32 SpeedPID;
+extern volatile bool plotSpeed;
+//extern PID_t SpeedPID;
 
 void vApplicationTickHook( void )
 {
@@ -55,7 +56,7 @@ static void commandsTask(void* pvParameters)
 			uart1bsp_GetNBytes((uint8_t*)command,receivedBytes);
 			command[receivedBytes+1] = '\0';
 
-			char* pch = strtok (command," ");
+			char* pch = strtok(command, " ");
 
 			if(pch[0] == 's')
 			{
@@ -65,28 +66,29 @@ static void commandsTask(void* pvParameters)
 
 					targetSpeed = RPM_TO_COUNTS_PER_MS(atof(pch));
 
-					printf("targetSpeed = %f\n", COUNTS_PER_MS_TO_RPM(targetSpeed));
+					//					printf("Target Speed = %f\n", COUNTS_PER_MS_TO_RPM(targetSpeed));
 				}
 				if(pch[1] == 'i')
 				{
 					ENABLE_CONVERSORCC;
-					printf("System init\n");
+					//					printf("System init\n");
 				}
 				if(pch[1] == 's')
 				{
 					DISABLE_CONVERSORCC;
-					printf("System stop\n");
+					//					printf("System stop\n");
 				}
 				if(pch[1] == 't')
 				{
 					printf("kp = %f\n", SpeedPID.Kp);
 					printf("ki = %f\n", SpeedPID.Ki);
-					printf("Vel = %f RPM \n", COUNTS_PER_MS_TO_RPM(encoderChangeFiltred));
-					printf("Vel = %d Counts \n", encoderChange);
+					printf("kd = %f\n", SpeedPID.Kd);
+					printf("Vel = %f RPM volatile bool plotSpeed = false;\n", COUNTS_PER_MS_TO_RPM(encoderChangeFiltred));
+					printf("Vel = %ld Counts \n", encoderChange);
 					printf("Vel = %f Counts Filt. \n", encoderChangeFiltred);
-					printf("Erro = %f Counts \n", erro);
-					printf("Out = %f ADC Counts \n", out);
-					printf("Setpoint = %f RPM\r\n", COUNTS_PER_MS_TO_RPM(targetSpeed));
+					printf("Erro = %f Counts \n", pidError);
+					printf("Out = %f ADC Counts \n", pidOutput);
+					printf("Target Speed = %f RPM\r\n", COUNTS_PER_MS_TO_RPM(targetSpeed));
 					printf("---------------------------\n");
 				}
 			}
@@ -98,7 +100,8 @@ static void commandsTask(void* pvParameters)
 
 					SpeedPID.Kp = atof(pch);
 
-					printf("kp = %f\n", SpeedPID.Kp);
+					arm_pid_init_f32(&SpeedPID, false);
+					//					printf("kp = %f\n", SpeedPID.Kp);
 				}
 				else if(pch[1] == 'i')
 				{
@@ -106,7 +109,31 @@ static void commandsTask(void* pvParameters)
 
 					SpeedPID.Ki = atof(pch);
 
-					printf("ki = %f\n", SpeedPID.Ki);
+					arm_pid_init_f32(&SpeedPID, false);
+					//					printf("ki = %f\n", SpeedPID.Ki);
+				}
+				else if(pch[1] == 'd')
+				{
+					pch = strtok (NULL," ");
+
+					SpeedPID.Kd = atof(pch);
+
+					arm_pid_init_f32(&SpeedPID, false);
+					//					printf("kd = %f\n", SpeedPID.Kd);
+				}
+			}
+			else if(pch[0] == 'p')
+			{
+				if(pch[1] == 's')
+				{
+					if(plotSpeed == false)
+					{
+						plotSpeed = true;
+					}
+					else
+					{
+						plotSpeed = false;
+					}
 				}
 			}
 
@@ -115,7 +142,7 @@ static void commandsTask(void* pvParameters)
 		}
 
 		ledsbsp_toogle(LED_RED);
-		vTaskDelay(150);
+		vTaskDelay(50);
 	}
 }
 
