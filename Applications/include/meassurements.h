@@ -1,9 +1,9 @@
 /**
   *************************************************************************************
-  * \file    speedcontroller.h 
+  * \file    meassurements.h 
   * \author  felip
   * \version Vx.y.z
-  * \date    Jan 13, 2016
+  * \date    Jan 14, 2016
   * \brief   Small description
   *************************************************************************************
   * description
@@ -16,8 +16,8 @@
   *************************************************************************************
   */
 
-#ifndef INCLUDE_SPEEDCONTROLLER_H_
-#define INCLUDE_SPEEDCONTROLLER_H_
+#ifndef INCLUDE_MEASSUREMENTS_H_
+#define INCLUDE_MEASSUREMENTS_H_
 
 #ifdef __cplusplus
 extern "C"
@@ -27,36 +27,32 @@ extern "C"
 
 /*************************************** INCLUDES *************************************/
 
-#include <stdbool.h>
-#include "maincontroller.h"
-
 /******************************* DEFINITIONS AND MACROS *******************************/
 
-#define ENABLE_CONVERSORCC  gpiobsp_output(GPIOC_11, HIGH);
-#define DISABLE_CONVERSORCC gpiobsp_output(GPIOC_11, LOW);
+#define ADC_BITS	14
+#define ADC_COUNTS  	((1 << ADC_BITS) - 1)
 
-#define ENCODER_PULSES 	1024.0F//360.0F
-#define OFFSET 0.0F
+#define STABILITATION_TIME_MS	100
 
-#define MEAN_WINDOW 30
+#define PLOT_PLL_INPUTS 		2
+#define PLOT_NORTCH_FILTER 		3
+#define PLOT_VOLTAGE_CONTROL  	4
 
-#define RPM_TO_COUNTS_PER_MS(x)		(((x*(ENCODER_PULSES*4.0F))/(SAMPLE_FREQ*60.0F)) + OFFSET)
-#define COUNTS_PER_MS_TO_RPM(x)		(((x*SAMPLE_FREQ*60.0F)/(ENCODER_PULSES*4.0F)) - OFFSET)
 
 /************************* TYPEDEFS, CLASSES AND STRUCTURES ***************************/
 
 /********************************** GLOBAL VARIABLES **********************************/
 
 /********************************** GLOBAL FUNCTIONS **********************************/
-                                      
-void SpeedController_Init(void);
-void SpeedController_SetSpeed(float rpmSpeed, float rampTime);
-void SpeedController_Loop(void);
+
+void Meassurements_Init(void);
+float Meassurements_GetRMS(void);
+void Meassurements_ResetPLL(void);
 
 #ifdef __cplusplus
 }
 #endif //__cplusplus
 
-#endif /* INCLUDE_SPEEDCONTROLLER_H_ */
+#endif /* INCLUDE_MEASSUREMENTS_H_ */
 
 /*************************************** EOF ******************************************/
